@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexCloud — ATCA Multi-Tenant Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary:#050508; --bg-secondary:#0a0a0f; --bg-card:#0d0d14;
+  --red-core:#e01e37; --red-bright:#ff2d47; --red-glow:rgba(224,30,55,0.3); --red-trace:rgba(224,30,55,0.07);
+  --text-primary:#f0f0f8; --text-secondary:#8888aa; --text-dim:#444466;
+  --border:rgba(224,30,55,0.18); --border-bright:rgba(224,30,55,0.5);
+  --success:#00ff9f; --warning:#ffb700; --info:#00c8ff;
+  --font-display:'Orbitron',monospace; --font-body:'Rajdhani',sans-serif; --font-mono:'Share Tech Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(224,30,55,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(224,30,55,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red-core),transparent);animation:scan 5s linear infinite;z-index:999;opacity:0.5;}
+@keyframes scan{0%{top:0}100%{top:100vh}}
+
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;z-index:10000;background:var(--bg-primary);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;}
+.login-screen.hidden{display:none;}
+.login-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:40px;width:420px;box-shadow:0 0 60px rgba(224,30,55,0.15);}
+.login-logo{font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--red-bright);text-align:center;letter-spacing:6px;margin-bottom:6px;text-shadow:0 0 30px var(--red-glow);}
+.login-sub{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-align:center;letter-spacing:2px;margin-bottom:8px;}
+.login-algo{font-family:var(--font-mono);font-size:9px;color:var(--red-core);text-align:center;border:1px solid rgba(224,30,55,0.3);border-radius:4px;padding:3px 12px;display:inline-block;margin-bottom:28px;}
+.login-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.login-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-family:var(--font-display);font-size:10px;letter-spacing:1px;font-weight:700;color:var(--text-dim);transition:all 0.2s;}
+.login-tab.active{background:var(--red-core);color:#fff;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;}
+.login-field input{width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text-primary);font-family:var(--font-body);font-size:14px;outline:none;transition:border 0.2s;}
+.login-field input:focus{border-color:var(--red-core);box-shadow:0 0 0 3px rgba(224,30,55,0.1);}
+.login-btn{width:100%;background:var(--red-core);color:#fff;border:none;padding:13px;border-radius:8px;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-top:6px;transition:all 0.2s;}
+.login-btn:hover{background:var(--red-bright);box-shadow:0 0 20px var(--red-glow);}
+.login-hint{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:16px;background:rgba(0,0,0,0.3);border-radius:6px;padding:10px 12px;line-height:1.8;}
+.login-error{color:var(--red-bright);font-size:12px;font-family:var(--font-mono);margin-top:8px;text-align:center;min-height:18px;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:242px;background:var(--bg-secondary);border-right:1px solid var(--border);z-index:100;display:flex;flex-direction:column;}
+.logo{padding:24px 22px 16px;border-bottom:1px solid var(--border);}
+.logo-title{font-family:var(--font-display);font-size:20px;font-weight:900;letter-spacing:4px;color:var(--red-bright);text-shadow:0 0 20px var(--red-glow);}
+.logo-sub{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-top:4px;}
+.logo-algo{font-family:var(--font-mono);font-size:9px;color:var(--red-core);letter-spacing:1px;margin-top:7px;border:1px solid rgba(224,30,55,0.3);border-radius:4px;padding:3px 8px;display:inline-block;}
+.nav-section{padding:12px 0;flex:1;overflow-y:auto;}
+.nav-lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:3px;color:var(--text-dim);padding:8px 22px 4px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 22px;cursor:pointer;transition:all 0.2s;font-size:14px;font-weight:600;color:var(--text-secondary);border-left:3px solid transparent;}
+.nav-item:hover,.nav-item.active{color:var(--text-primary);background:var(--red-trace);border-left-color:var(--red-core);}
+.nav-item.active{color:var(--red-bright);}
+.nav-icon{font-size:15px;width:18px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--red-core);color:#fff;font-size:10px;font-family:var(--font-mono);padding:2px 7px;border-radius:20px;}
+.nav-divider{height:1px;background:var(--border);margin:8px 16px;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);}
+.tenant-pill{background:var(--red-trace);border:1px solid var(--border);border-radius:8px;padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.tenant-pill:hover{border-color:var(--red-core);}
+.t-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--red-core),#ff6b35);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:11px;font-weight:700;}
+.t-avatar.blue{background:linear-gradient(135deg,#0066ff,#00c8ff);}
+.mode-badge{font-family:var(--font-mono);font-size:8px;padding:2px 6px;border-radius:3px;margin-top:2px;}
+.mode-badge.admin{background:rgba(224,30,55,0.2);color:var(--red-bright);border:1px solid rgba(224,30,55,0.3);}
+.mode-badge.tenant{background:rgba(0,200,255,0.15);color:var(--info);border:1px solid rgba(0,200,255,0.3);}
+
+/* MAIN */
+.main{margin-left:242px;min-height:100vh;position:relative;z-index:1;}
+.topbar{height:62px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;position:sticky;top:0;z-index:50;}
+.page-title{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:2px;flex:1;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-text{font-family:var(--font-mono);font-size:11px;color:var(--success);}
+.topbar-btn{background:var(--red-trace);border:1px solid var(--border);color:var(--text-secondary);padding:7px 15px;border-radius:6px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;transition:all 0.2s;}
+.topbar-btn:hover{border-color:var(--red-core);color:var(--red-bright);}
+.topbar-btn.blue{border-color:rgba(0,200,255,0.3);color:var(--info);}
+.topbar-btn.blue:hover{border-color:var(--info);}
+.content{padding:24px 28px;}
+.panel{display:none;} .panel.active{display:block;}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:all 0.3s;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red-core),transparent);}
+.stat-card.blue-top::before{background:linear-gradient(90deg,var(--info),transparent);}
+.stat-card.green-top::before{background:linear-gradient(90deg,var(--success),transparent);}
+.stat-card:hover{border-color:var(--border-bright);transform:translateY(-2px);box-shadow:0 8px 30px rgba(224,30,55,0.1);}
+.stat-label{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1;}
+.stat-value.red{color:var(--red-bright);} .stat-value.green{color:var(--success);} .stat-value.yellow{color:var(--warning);} .stat-value.blue{color:var(--info);}
+.stat-change{font-size:12px;font-family:var(--font-mono);margin-top:5px;}
+.stat-change.up{color:var(--success);} .stat-change.down{color:var(--red-bright);}
+.stat-icon{position:absolute;right:16px;top:16px;font-size:24px;opacity:0.1;}
+
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.card-body{padding:18px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--font-mono);}
+.badge-green{background:rgba(0,255,159,0.1);color:var(--success);border:1px solid rgba(0,255,159,0.2);}
+.badge-red{background:rgba(224,30,55,0.1);color:var(--red-bright);border:1px solid rgba(224,30,55,0.2);}
+.badge-yellow{background:rgba(255,183,0,0.1);color:var(--warning);border:1px solid rgba(255,183,0,0.2);}
+.badge-blue{background:rgba(0,200,255,0.1);color:var(--info);border:1px solid rgba(0,200,255,0.2);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{font-family:var(--font-mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid rgba(224,30,55,0.05);transition:background 0.2s;}
+tbody tr:hover{background:var(--red-trace);}
+tbody td{padding:11px 14px;vertical-align:middle;}
+
+/* MEMORY BARS */
+.mem-bar-bg{background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden;}
+.mem-bar-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+.mem-bar-fill.critical{background:var(--red-bright);box-shadow:0 0 8px var(--red-glow);}
+.mem-bar-fill.warning{background:var(--warning);}
+.mem-bar-fill.normal{background:var(--success);}
+.mem-label{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin-bottom:3px;display:flex;justify-content:space-between;}
+
+/* CHARTS */
+.bar-chart{display:flex;align-items:flex-end;gap:7px;height:110px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.bar-fill{width:100%;background:linear-gradient(0deg,var(--red-core),var(--red-bright));border-radius:4px 4px 0 0;min-height:4px;}
+.bar-fill.blue-bar{background:linear-gradient(0deg,#0044cc,var(--info));}
+.bar-label{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);}
+
+/* LOGS */
+.log-list{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;}
+.log-item{display:flex;align-items:flex-start;gap:11px;padding:9px 13px;background:rgba(0,0,0,0.2);border-radius:7px;border-left:3px solid transparent;font-size:13px;}
+.log-item.critical{border-left-color:var(--red-bright);background:rgba(224,30,55,0.05);}
+.log-item.warning{border-left-color:var(--warning);}
+.log-item.info{border-left-color:var(--info);}
+.log-item.success{border-left-color:var(--success);}
+.log-time{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);white-space:nowrap;}
+.log-msg{flex:1;}
+.log-msg strong{color:var(--text-primary);}
+
+/* ATCA FLOW */
+.atca-flow{display:flex;flex-direction:column;gap:0;}
+.atca-step{display:flex;align-items:stretch;gap:0;}
+.atca-node{width:42px;height:42px;border-radius:50%;border:2px solid var(--red-core);background:rgba(224,30,55,0.1);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--red-bright);flex-shrink:0;margin:8px 0;z-index:1;box-shadow:0 0 12px var(--red-glow);}
+.atca-content{flex:1;padding:8px 0 8px 14px;}
+.atca-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;}
+.atca-desc{font-size:12px;color:var(--text-secondary);line-height:1.6;}
+.atca-code{font-family:var(--font-mono);font-size:11px;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:6px;padding:6px 10px;margin-top:6px;color:var(--info);}
+
+/* LAYERS */
+.layer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+.layer-card{border-radius:10px;padding:16px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.layer-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.layer-card.l1::before{background:var(--info);}
+.layer-card.l2::before{background:var(--red-bright);}
+.layer-card.l3::before{background:var(--success);}
+.layer-num{font-family:var(--font-display);font-size:10px;letter-spacing:2px;margin-bottom:7px;}
+.layer-card.l1 .layer-num{color:var(--info);}
+.layer-card.l2 .layer-num{color:var(--red-bright);}
+.layer-card.l3 .layer-num{color:var(--success);}
+.layer-title{font-size:14px;font-weight:700;margin-bottom:5px;}
+.layer-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+
+/* ATCA METRICS */
+.atca-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.atca-metric{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.atca-metric-val{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--red-bright);}
+.atca-metric-lbl{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);letter-spacing:1.5px;margin-top:4px;}
+
+/* CLOAK MAP */
+.cloak-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-family:var(--font-mono);font-size:12px;flex-wrap:wrap;}
+.cloak-label{color:var(--text-dim);width:120px;flex-shrink:0;}
+.cloak-raw{color:var(--red-bright);}
+.cloak-arrow{color:var(--text-dim);}
+.cloak-enc{color:var(--success);letter-spacing:2px;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--text-dim);}
+.form-group input,.form-group select{background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text-primary);font-family:var(--font-body);font-size:14px;outline:none;transition:border 0.2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--red-core);box-shadow:0 0 0 3px rgba(224,30,55,0.1);}
+.btn-primary{background:var(--red-core);color:#fff;border:none;padding:11px 24px;border-radius:8px;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.btn-primary:hover{background:var(--red-bright);box-shadow:0 0 20px var(--red-glow);transform:translateY(-1px);}
+.btn-primary.blue-btn{background:#0055cc;}
+.btn-primary.blue-btn:hover{background:var(--info);box-shadow:0 0 20px rgba(0,200,255,0.3);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:11px 20px;border-radius:8px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-ghost:hover{border-color:var(--red-core);color:var(--text-primary);}
+
+/* STORAGE VISUAL */
+.storage-ring{position:relative;width:140px;height:140px;margin:0 auto 18px;}
+.storage-ring svg{width:140px;height:140px;transform:rotate(-90deg);}
+.storage-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.storage-pct{font-family:var(--font-display);font-size:22px;font-weight:700;}
+.storage-lbl{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;}
+
+/* TENANT PORTAL SPECIFIC */
+.portal-hero{background:linear-gradient(135deg,rgba(0,40,80,0.5),rgba(0,0,30,0.8));border:1px solid rgba(0,200,255,0.2);border-radius:16px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden;}
+.portal-hero::before{content:'';position:absolute;top:-50%;right:-20%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,200,255,0.08),transparent);pointer-events:none;}
+.portal-tenantname{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--info);margin-bottom:4px;}
+.portal-domain{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);}
+.portal-cloak{font-family:var(--font-mono);font-size:11px;color:var(--success);margin-top:8px;background:rgba(0,255,159,0.05);border:1px solid rgba(0,255,159,0.15);border-radius:6px;padding:6px 12px;display:inline-block;}
+
+/* FILE MANAGER */
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+.file-item{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:16px 12px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.file-item:hover{border-color:rgba(0,200,255,0.4);background:rgba(0,200,255,0.04);}
+.file-icon{font-size:32px;margin-bottom:8px;}
+.file-name{font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-size{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+.file-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end;}
+.file-btn{background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);color:var(--info);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:var(--font-body);transition:all 0.2s;}
+.file-btn:hover{background:rgba(0,200,255,0.2);}
+.file-btn.danger{background:rgba(224,30,55,0.1);border-color:rgba(224,30,55,0.2);color:var(--red-bright);}
+.file-btn.danger:hover{background:rgba(224,30,55,0.2);}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed rgba(0,200,255,0.3);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px;}
+.upload-zone:hover{border-color:var(--info);background:rgba(0,200,255,0.03);}
+.upload-zone-icon{font-size:36px;margin-bottom:10px;}
+.upload-zone-text{font-size:14px;color:var(--text-secondary);}
+.upload-zone-sub{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:4px;}
+
+/* API KEYS */
+.api-key-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;}
+.api-key-val{font-family:var(--font-mono);font-size:12px;color:var(--info);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.api-key-name{font-size:13px;font-weight:700;width:100px;}
+.api-key-status{font-family:var(--font-mono);font-size:10px;}
+
+/* REAL-TIME TICKER */
+.ticker{background:rgba(0,0,0,0.4);border-bottom:1px solid var(--border);padding:6px 28px;display:flex;align-items:center;gap:16px;font-family:var(--font-mono);font-size:10px;overflow:hidden;}
+.ticker-item{white-space:nowrap;color:var(--text-dim);}
+.ticker-item span{color:var(--info);}
+.ticker-item.red span{color:var(--red-bright);}
+.ticker-item.green span{color:var(--success);}
+
+/* NOTIFICATION */
+.notif-btn{position:relative;cursor:pointer;}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--red-bright);border-radius:50%;box-shadow:0 0 6px var(--red-glow);}
+
+/* USAGE QUOTA CARD */
+.quota-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.quota-row:last-child{border-bottom:none;}
+.quota-icon{font-size:20px;width:28px;text-align:center;}
+.quota-info{flex:1;}
+.quota-name{font-size:13px;font-weight:700;}
+.quota-nums{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+.quota-bar-wrap{width:140px;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:var(--bg-secondary);} ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:4px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:10px;padding:12px 18px;font-size:14px;font-weight:600;z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.3s;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(0,255,159,0.4);color:var(--success);}
+.toast.error{border-color:var(--border-bright);color:var(--red-bright);}
+.toast.info{border-color:rgba(0,200,255,0.4);color:var(--info);}
+
+/* SWITCH TOGGLE */
+.switch{position:relative;display:inline-block;width:42px;height:22px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.1);border-radius:22px;transition:.3s;}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;}
+input:checked+.slider{background:var(--red-core);}
+input:checked+.slider:before{transform:translateX(20px);}
+
+/* RESPONSIVE */
+@media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr);}.grid-2,.grid-3{grid-template-columns:1fr;}.layer-grid{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}.atca-metrics{grid-template-columns:1fr 1fr;}}
+@media(max-width:760px){.sidebar{width:200px;}.main{margin-left:200px;}.content{padding:12px;}.stat-grid{grid-template-columns:1fr;}}
+@media(max-width:600px){.sidebar{display:none;}.main{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ LOGIN SCREEN ══ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="login-logo">NEXCLOUD</div>
+      <div class="login-sub">MULTI-TENANT PLATFORM v2.0</div>
+      <div style="display:flex;justify-content:center"><div class="login-algo">⚡ ATCA ALGORITHM ACTIVE</div></div>
+    </div>
+    <div class="login-tabs">
+      <div class="login-tab active" id="tab-admin" onclick="switchLoginTab('admin')">👑 ADMIN</div>
+      <div class="login-tab" id="tab-tenant" onclick="switchLoginTab('tenant')">🏢 TENANT</div>
+    </div>
+    <div id="login-admin-fields">
+      <div class="login-field"><label>USERNAME</label><input type="text" id="l-user" placeholder="admin" value="admin"></div>
+      <div class="login-field"><label>PASSWORD</label><input type="password" id="l-pass" placeholder="nexcloud2024" value="nexcloud2024"></div>
+    </div>
+    <div id="login-tenant-fields" style="display:none">
+      <div class="login-field"><label>TENANT DOMAIN</label><input type="text" id="l-domain" placeholder="e.g. techflow"></div>
+      <div class="login-field"><label>PASSWORD</label><input type="password" id="l-tpass" placeholder="demo123" value="demo123"></div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" onclick="doLogin()">⚡ ENTER NEXCLOUD</button>
+    <div class="login-hint" id="login-hint">
+      Admin → user: <strong>admin</strong> / pass: <strong>nexcloud2024</strong><br>
+      Tenant → domain: <strong>techflow</strong> / pass: <strong>demo123</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ SIDEBAR ══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-title">NEXCLOUD</div>
+    <div class="logo-sub">MULTI-TENANT PLATFORM v2.0</div>
+    <div class="logo-algo">⚡ ATCA ALGORITHM ACTIVE</div>
+  </div>
+  <nav class="nav-section" id="nav-admin" style="display:none">
+    <div class="nav-lbl">ADMIN CORE</div>
+    <div class="nav-item active" onclick="showPanel('dashboard',this)"><span class="nav-icon">⬛</span> Dashboard</div>
+    <div class="nav-item" onclick="showPanel('tenants',this)"><span class="nav-icon">🏢</span> Tenants <span class="nav-badge" id="tenant-count">6</span></div>
+    <div class="nav-item" onclick="showPanel('memory',this)"><span class="nav-icon">💾</span> Memory Monitor</div>
+    <div class="nav-item" onclick="showPanel('payments',this)"><span class="nav-icon">💳</span> Payments</div>
+    <div class="nav-lbl">ATCA SECURITY</div>
+    <div class="nav-item" onclick="showPanel('atca',this)"><span class="nav-icon">🔐</span> ATCA Algorithm</div>
+    <div class="nav-item" onclick="showPanel('cloaking',this)"><span class="nav-icon">👁</span> Cloaking Monitor</div>
+    <div class="nav-item" onclick="showPanel('security',this)"><span class="nav-icon">🛡</span> Cyber Defense <span class="nav-badge">3</span></div>
+    <div class="nav-lbl">ADMIN TOOLS</div>
+    <div class="nav-item" onclick="showPanel('register',this)"><span class="nav-icon">➕</span> Add Tenant</div>
+    <div class="nav-item" onclick="showPanel('settings',this)"><span class="nav-icon">⚙</span> Settings</div>
+  </nav>
+  <nav class="nav-section" id="nav-tenant" style="display:none">
+    <div class="nav-lbl">MY CLOUD</div>
+    <div class="nav-item active" onclick="showPanel('t-dashboard',this)"><span class="nav-icon">🏠</span> My Dashboard</div>
+    <div class="nav-item" onclick="showPanel('t-storage',this)"><span class="nav-icon">💾</span> Storage</div>
+    <div class="nav-item" onclick="showPanel('t-files',this)"><span class="nav-icon">📁</span> File Manager</div>
+    <div class="nav-item" onclick="showPanel('t-usage',this)"><span class="nav-icon">📊</span> Usage & Quota</div>
+    <div class="nav-lbl">ACCOUNT</div>
+    <div class="nav-item" onclick="showPanel('t-api',this)"><span class="nav-icon">🔑</span> API Keys</div>
+    <div class="nav-item" onclick="showPanel('t-billing',this)"><span class="nav-icon">💳</span> Billing</div>
+    <div class="nav-item" onclick="showPanel('t-security',this)"><span class="nav-icon">🔒</span> Security</div>
+    <div class="nav-item" onclick="showPanel('t-support',this)"><span class="nav-icon">💬</span> Support</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="tenant-pill" onclick="doLogout()">
+      <div class="t-avatar" id="sf-avatar">AD</div>
+      <div>
+        <div style="font-size:13px;font-weight:700" id="sf-name">Admin Root</div>
+        <div class="mode-badge admin" id="sf-mode">SUPERUSER</div>
+      </div>
+      <div style="margin-left:auto;font-size:16px;color:var(--text-dim)">⏻</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════ MAIN ══ -->
+<main class="main" id="main-content">
+  <!-- REAL-TIME TICKER -->
+  <div class="ticker" id="ticker">
+    <span style="font-family:var(--font-display);font-size:9px;color:var(--red-bright);letter-spacing:2px;margin-right:8px;">LIVE</span>
+    <div class="ticker-item green">ATCA: <span id="tk-valid">14,823</span> validated</div>
+    <div style="color:var(--border)">|</div>
+    <div class="ticker-item red">Blocks: <span id="tk-block">247</span></div>
+    <div style="color:var(--border)">|</div>
+    <div class="ticker-item">Memory: <span id="tk-mem">57.6GB</span> / 512GB</div>
+    <div style="color:var(--border)">|</div>
+    <div class="ticker-item green">Tenants: <span id="tk-tenants">6</span> active</div>
+    <div style="color:var(--border)">|</div>
+    <div class="ticker-item">Revenue: <span>$48,200 MRR</span></div>
+    <div style="color:var(--border)">|</div>
+    <div class="ticker-item green">Schema Leaks: <span>0</span></div>
+  </div>
+
+  <header class="topbar">
+    <div class="page-title" id="page-title">DASHBOARD</div>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <div class="status-text" id="topbar-status">ATCA PROTECTING ALL TENANTS</div>
+      <button class="topbar-btn" onclick="refreshAll()">↻ REFRESH</button>
+      <button class="topbar-btn" id="add-tenant-btn" onclick="showPanel('register',null)" style="display:none">+ TENANT</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══════════════════════════ ADMIN: DASHBOARD ══ -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-icon">🏢</div><div class="stat-label">Active Tenants</div><div class="stat-value red" id="d-tenants">6</div><div class="stat-change up">↑ +2 this month</div></div>
+        <div class="stat-card"><div class="stat-icon">💾</div><div class="stat-label">Total Memory Used</div><div class="stat-value" id="d-mem">57.6 GB</div><div class="stat-change up">↑ 11% utilization</div></div>
+        <div class="stat-card"><div class="stat-icon">💳</div><div class="stat-label">Monthly Revenue</div><div class="stat-value green">$48,200</div><div class="stat-change up">↑ +8.3%</div></div>
+        <div class="stat-card"><div class="stat-icon">🔐</div><div class="stat-label">ATCA Blocks (24h)</div><div class="stat-value yellow" id="d-atca">247</div><div class="stat-change down">↓ 3 active threats</div></div>
+      </div>
+      <div class="grid-3">
+        <div class="card"><div class="card-header"><div class="card-title">Request Volume (24h)</div><span class="badge badge-green">LIVE</span></div><div class="card-body"><div class="bar-chart" id="req-chart"></div></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Tenant Health</div></div><div class="card-body" id="health-list"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-header"><div class="card-title">ATCA Security Events</div><span class="badge badge-red">3 BLOCKED</span></div><div class="card-body"><div class="log-list" id="dash-log"></div></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Top Memory Consumers</div><span class="badge badge-yellow">CLOAKED IDs</span></div><div class="card-body" id="top-mem"></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: TENANTS ══ -->
+    <div id="panel-tenants" class="panel">
+      <div class="card">
+        <div class="card-header"><div class="card-title">All Tenants — Cloaked Identities</div><button class="btn-primary" onclick="showPanel('register',null)" style="font-size:10px;padding:8px 16px">+ ADD</button></div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead><tr><th>TENANT</th><th>CLOAKED ID</th><th>DOMAIN</th><th>PLAN</th><th>MEMORY</th><th>STORAGE USED</th><th>STATUS</th><th>ISO MODE</th><th>ACTION</th></tr></thead>
+            <tbody id="tenant-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: MEMORY ══ -->
+    <div id="panel-memory" class="panel">
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-label">Total Capacity</div><div class="stat-value">512 GB</div></div>
+        <div class="stat-card"><div class="stat-label">Used</div><div class="stat-value red" id="mem-used-val">57.6 GB</div></div>
+        <div class="stat-card"><div class="stat-label">Throttle Events</div><div class="stat-value yellow">12</div></div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">Memory Per Tenant (Schema Hidden)</div><span class="badge badge-blue">ATCA CLOAKED</span></div><div class="card-body" id="mem-list"></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">Noisy Neighbor Alerts</div></div><div class="card-body"><div class="log-list" id="mem-alerts"></div></div></div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: PAYMENTS ══ -->
+    <div id="panel-payments" class="panel">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">MRR</div><div class="stat-value green">$48,200</div></div>
+        <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value red">$620</div></div>
+        <div class="stat-card"><div class="stat-label">Invoices</div><div class="stat-value">6</div></div>
+        <div class="stat-card"><div class="stat-label">Cost / GB</div><div class="stat-value yellow">$0.08</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Payment Tracker</div></div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead><tr><th>TENANT</th><th>CLOAKED ID</th><th>PLAN</th><th>MEM COST</th><th>COMPUTE</th><th>STORAGE COST</th><th>TOTAL</th><th>STATUS</th><th>NEXT BILL</th></tr></thead>
+            <tbody id="pay-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: ATCA ══ -->
+    <div id="panel-atca" class="panel">
+      <div class="card">
+        <div class="card-header"><div class="card-title">ATCA — Adaptive Tenant Cloaking Algorithm</div><span class="badge badge-green">ACTIVE</span></div>
+        <div class="card-body">
+          <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;line-height:1.8">
+            <strong style="color:var(--red-bright)">ATCA</strong> dynamically validates tenant identity, <strong style="color:var(--info)">cloaks</strong> internal schema names using encrypted identifiers, and enforces a 3-layer check (<strong>Domain → Token → Tenant Mapping</strong>) before any data access. Prevents cross-tenant data leakage, URL manipulation, and API exploits — keeping schema names completely hidden from clients.
+          </p>
+          <div class="layer-grid">
+            <div class="layer-card l1"><div class="layer-num">LAYER 1</div><div class="layer-title">Domain Detection</div><div class="layer-desc">Extract tenant from subdomain on every request.<br><span style="font-family:var(--font-mono);font-size:11px;color:var(--info)">tenant1.atca.com → tenant1</span></div></div>
+            <div class="layer-card l2"><div class="layer-num">LAYER 2</div><div class="layer-title">Cloaking Mechanism</div><div class="layer-desc">Schema name hidden. Encrypted ID returned to clients.<br><span style="font-family:var(--font-mono);font-size:11px;color:var(--red-bright)">tenant1_schema → ATCAX9F2K</span></div></div>
+            <div class="layer-card l3"><div class="layer-num">LAYER 3</div><div class="layer-title">Adaptive Validation</div><div class="layer-desc">Domain + JWT token + Tenant map must all match.<br><span style="font-family:var(--font-mono);font-size:11px;color:var(--success)">Mismatch = IMMEDIATE BLOCK</span></div></div>
+          </div>
+          <div class="atca-metrics">
+            <div class="atca-metric"><div class="atca-metric-val" id="atca-req">14,823</div><div class="atca-metric-lbl">REQUESTS VALIDATED</div></div>
+            <div class="atca-metric"><div class="atca-metric-val" id="atca-blk">247</div><div class="atca-metric-lbl">CROSS-TENANT BLOCKED</div></div>
+            <div class="atca-metric"><div class="atca-metric-val">0</div><div class="atca-metric-lbl">SCHEMA EXPOSURES</div></div>
+            <div class="atca-metric"><div class="atca-metric-val" id="atca-cloaked">6</div><div class="atca-metric-lbl">ACTIVE CLOAKED IDs</div></div>
+            <div class="atca-metric"><div class="atca-metric-val">100%</div><div class="atca-metric-lbl">TOKEN VALIDATION</div></div>
+            <div class="atca-metric"><div class="atca-metric-val">0</div><div class="atca-metric-lbl">DATA LEAKS</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">ATCA Workflow — 7 Steps</div></div><div class="card-body"><div class="atca-flow" id="atca-steps"></div></div></div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: CLOAKING ══ -->
+    <div id="panel-cloaking" class="panel">
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-label">Cloaked Tenants</div><div class="stat-value red" id="cloak-count">6</div></div>
+        <div class="stat-card"><div class="stat-label">Cross-Tenant Blocks</div><div class="stat-value yellow" id="cloak-blocks">247</div></div>
+        <div class="stat-card"><div class="stat-label">Schema Exposures</div><div class="stat-value green">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Cloaked Identity Map</div><span class="badge badge-red">ADMIN ONLY</span></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Clients only see Cloaked IDs. Real schema names never leave the server.</p>
+          <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:16px;" id="cloak-map"></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">ATCA Validation Log</div></div><div class="card-body"><div class="log-list" id="atca-log"></div></div></div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: SECURITY ══ -->
+    <div id="panel-security" class="panel">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">ATCA Blocks (24h)</div><div class="stat-value red">247</div></div>
+        <div class="stat-card"><div class="stat-label">URL Manipulations</div><div class="stat-value yellow">18</div></div>
+        <div class="stat-card"><div class="stat-label">IPs Blacklisted</div><div class="stat-value">841</div></div>
+        <div class="stat-card"><div class="stat-label">Data Leaks</div><div class="stat-value green">0</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-header"><div class="card-title">Attack Log</div><span class="badge badge-red">LIVE</span></div><div class="card-body"><div class="log-list" id="sec-log"></div></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">ATCA Defense Layers</div></div><div class="card-body" id="defense-list"></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: REGISTER ══ -->
+    <div id="panel-register" class="panel">
+      <div class="card" style="max-width:660px">
+        <div class="card-header"><div class="card-title">Register New Tenant</div><span class="badge badge-green">ATCA ID AUTO-GENERATED</span></div>
+        <div class="card-body">
+          <div class="form-grid" style="gap:14px;margin-bottom:16px">
+            <div class="form-group"><label>Company Name</label><input type="text" id="f-name" placeholder="e.g. Acme Corp"></div>
+            <div class="form-group"><label>Admin Email</label><input type="email" id="f-email" placeholder="admin@company.com"></div>
+            <div class="form-group"><label>Subdomain (→ domain.nexcloud.com)</label><input type="text" id="f-domain" placeholder="e.g. acme"></div>
+            <div class="form-group"><label>Plan</label><select id="f-plan"><option value="starter">Starter — $500/mo (5GB)</option><option value="growth">Growth — $2,000/mo (10GB)</option><option value="enterprise">Enterprise — $8,000/mo (32GB)</option></select></div>
+            <div class="form-group"><label>Memory Quota (GB)</label><input type="number" id="f-mem" placeholder="e.g. 10"></div>
+            <div class="form-group"><label>Storage Quota (GB)</label><input type="number" id="f-storage" placeholder="e.g. 100"></div>
+            <div class="form-group"><label>Max Requests/min</label><input type="number" id="f-req" placeholder="e.g. 1000"></div>
+            <div class="form-group"><label>Isolation Mode</label><select id="f-iso"><option value="shared">Shared Schema</option><option value="schema">Schema per Tenant</option><option value="db">Database per Tenant</option></select></div>
+          </div>
+          <div style="background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.2);border-radius:8px;padding:11px 14px;margin-bottom:16px;font-family:var(--font-mono);font-size:11px;color:var(--info)">
+            ⚡ ATCA will auto-generate an encrypted Cloaked ID. Schema name stays hidden from all clients.
+          </div>
+          <div style="display:flex;gap:12px">
+            <button class="btn-primary" onclick="registerTenant()">REGISTER + CLOAK TENANT</button>
+            <button class="btn-ghost" onclick="clearForm()">CLEAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ ADMIN: SETTINGS ══ -->
+    <div id="panel-settings" class="panel">
+      <div class="card" style="max-width:560px">
+        <div class="card-header"><div class="card-title">Platform Settings</div></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:15px">ATCA Algorithm</div><div style="font-size:12px;color:var(--text-secondary)">Adaptive Tenant Cloaking — 3-layer validation</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:15px">Schema Cloaking</div><div style="font-size:12px;color:var(--text-secondary)">Real schema names replaced with encrypted ATCAXXXXXX</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:15px">JWT Tenant Binding</div><div style="font-size:12px;color:var(--text-secondary)">Token tenant_id must match domain cloaked ID</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:15px">URL Manipulation Guard</div><div style="font-size:12px;color:var(--text-secondary)">Blocks tenant switching via URL changes</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:15px">Real-time Monitoring</div><div style="font-size:12px;color:var(--text-secondary)">Live ticker, auto-refresh every 12s</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0"><div><div style="font-weight:700;font-size:15px">Payment Auto-Invoice</div><div style="font-size:12px;color:var(--text-secondary)">Monthly billing: base + memory + storage + compute</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: DASHBOARD ══ -->
+    <div id="panel-t-dashboard" class="panel">
+      <div class="portal-hero">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="portal-tenantname" id="pt-name">TechFlow Inc</div>
+            <div class="portal-domain" id="pt-domain">🌐 techflow.nexcloud.com</div>
+            <div class="portal-cloak" id="pt-cloak">🔐 Cloaked ID: ATCA7K2X9F</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim)">PLAN</div>
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--info)" id="pt-plan">ENTERPRISE</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:2px" id="pt-status-label">● ACTIVE</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card blue-top"><div class="stat-icon">💾</div><div class="stat-label">Storage Used</div><div class="stat-value blue" id="pt-storage-used">42.3 GB</div><div class="stat-change" id="pt-storage-pct" style="color:var(--info)">of 100GB quota</div></div>
+        <div class="stat-card blue-top"><div class="stat-icon">🧠</div><div class="stat-label">Memory Used</div><div class="stat-value blue" id="pt-mem">18.2 GB</div><div class="stat-change" style="color:var(--info)">of 32GB quota</div></div>
+        <div class="stat-card green-top"><div class="stat-icon">⚡</div><div class="stat-label">Requests Today</div><div class="stat-value green" id="pt-req">4,200</div><div class="stat-change up">↑ 84% of limit</div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Current Bill</div><div class="stat-value yellow" id="pt-bill">$9,860</div><div class="stat-change" style="color:var(--text-dim)">due Apr 11, 2026</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Storage Breakdown</div><span class="badge badge-blue">LIVE</span></div>
+          <div class="card-body" id="pt-storage-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Recent Activity</div></div>
+          <div class="card-body"><div class="log-list" id="pt-activity"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Quick Actions</div></div>
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-primary blue-btn" onclick="showPanel('t-files',null)">📁 Browse Files</button>
+          <button class="btn-primary blue-btn" onclick="showPanel('t-storage',null)">💾 Storage Details</button>
+          <button class="btn-primary blue-btn" onclick="showPanel('t-api',null)">🔑 API Keys</button>
+          <button class="btn-primary blue-btn" onclick="showPanel('t-billing',null)">💳 View Invoice</button>
+          <button class="btn-ghost" onclick="showPanel('t-support',null)">💬 Get Support</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: STORAGE ══ -->
+    <div id="panel-t-storage" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Storage Overview</div></div>
+          <div class="card-body" style="text-align:center">
+            <div class="storage-ring">
+              <svg viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
+                <circle cx="70" cy="70" r="58" fill="none" stroke="var(--info)" stroke-width="12" stroke-dasharray="364.4" stroke-dashoffset="152" stroke-linecap="round"/>
+              </svg>
+              <div class="storage-ring-text">
+                <div class="storage-pct" style="color:var(--info)" id="stor-pct">42%</div>
+                <div class="storage-lbl">USED</div>
+              </div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--info)" id="stor-used-val">42.3 GB</div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:4px">of 100 GB total quota</div>
+            <div style="margin-top:16px;display:flex;justify-content:center;gap:24px">
+              <div><div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--success)">57.7 GB</div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim)">FREE</div></div>
+              <div><div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--warning)">100 GB</div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim)">TOTAL</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Storage By Category</div></div>
+          <div class="card-body" id="stor-breakdown"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Storage History (30 days)</div></div>
+        <div class="card-body"><div class="bar-chart" id="stor-history"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Storage Alerts</div></div>
+        <div class="card-body">
+          <div class="log-item info"><span class="log-time">NOW</span><div class="log-msg">Storage is at 42% — well within quota. <strong>58GB available.</strong></div></div>
+          <div class="log-item warning" style="margin-top:8px"><span class="log-time">3d ago</span><div class="log-msg"><strong>Large upload detected</strong> — 8.2GB uploaded in single session.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: FILE MANAGER ══ -->
+    <div id="panel-t-files" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">File Manager</div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-blue" id="fm-path">/ root</span>
+            <button class="btn-primary blue-btn" onclick="triggerUpload()" style="padding:6px 14px;font-size:10px">⬆ UPLOAD</button>
+            <button class="btn-ghost" onclick="newFolder()" style="padding:6px 14px;font-size:12px">+ FOLDER</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="upload-zone" id="upload-zone" onclick="triggerUpload()">
+            <div class="upload-zone-icon">📤</div>
+            <div class="upload-zone-text">Drop files here or click to upload</div>
+            <div class="upload-zone-sub">Max 500MB per file · All formats supported</div>
+          </div>
+          <input type="file" id="file-input" multiple style="display:none" onchange="handleFileUpload(this)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <input type="text" placeholder="Search files..." style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-family:var(--font-body);font-size:13px;outline:none;flex:1;" oninput="filterFiles(this.value)">
+            <select style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:13px;outline:none;" onchange="filterByType(this.value)">
+              <option value="all">All Types</option>
+              <option value="doc">Documents</option>
+              <option value="img">Images</option>
+              <option value="vid">Videos</option>
+              <option value="arch">Archives</option>
+            </select>
+          </div>
+          <div class="file-grid" id="file-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: USAGE ══ -->
+    <div id="panel-t-usage" class="panel">
+      <div class="stat-grid">
+        <div class="stat-card blue-top"><div class="stat-label">Storage Used</div><div class="stat-value blue" id="u-stor">42.3GB</div><div class="stat-change" style="color:var(--info)">/ 100GB</div></div>
+        <div class="stat-card blue-top"><div class="stat-label">Memory Used</div><div class="stat-value blue" id="u-mem">18.2GB</div><div class="stat-change" style="color:var(--info)">/ 32GB</div></div>
+        <div class="stat-card green-top"><div class="stat-label">API Requests</div><div class="stat-value green" id="u-req">4,200</div><div class="stat-change up">/ 5,000 limit</div></div>
+        <div class="stat-card"><div class="stat-label">Bandwidth</div><div class="stat-value yellow">128 GB</div><div class="stat-change" style="color:var(--text-dim)">this month</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Quota Usage</div></div>
+        <div class="card-body" id="quota-detail"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Daily Usage (Last 7 Days)</div></div>
+        <div class="card-body"><div class="bar-chart" id="usage-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: API KEYS ══ -->
+    <div id="panel-t-api" class="panel">
+      <div class="card">
+        <div class="card-header"><div class="card-title">API Keys</div><button class="btn-primary blue-btn" onclick="generateApiKey()" style="padding:7px 16px;font-size:10px">+ GENERATE KEY</button></div>
+        <div class="card-body" id="api-keys-list"></div>
+      </div>
+      <div class="card" style="max-width:560px">
+        <div class="card-header"><div class="card-title">API Usage</div></div>
+        <div class="card-body">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);line-height:2">
+            <div>Base URL: <span style="color:var(--info)">https://api.nexcloud.com/v1</span></div>
+            <div>Auth Header: <span style="color:var(--info)">Authorization: Bearer &lt;YOUR_KEY&gt;</span></div>
+            <div>Tenant Header: <span style="color:var(--info)">X-Tenant-Domain: <span id="api-domain">techflow</span></span></div>
+            <div>Rate Limit: <span style="color:var(--warning)">5,000 req/day</span></div>
+          </div>
+          <div style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:var(--font-mono);font-size:11px;color:var(--info);line-height:1.8">
+            # Example API call<br>
+            curl -X GET https://api.nexcloud.com/v1/files \<br>
+            &nbsp;&nbsp;-H "Authorization: Bearer nxc_live_xxxx" \<br>
+            &nbsp;&nbsp;-H "X-Tenant-Domain: <span id="api-domain2">techflow</span>"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: BILLING ══ -->
+    <div id="panel-t-billing" class="panel">
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card blue-top"><div class="stat-label">Current Bill</div><div class="stat-value blue" id="b-total">$9,860</div></div>
+        <div class="stat-card green-top"><div class="stat-label">Due Date</div><div class="stat-value green" style="font-size:18px">Apr 11, 2026</div></div>
+        <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value green" style="font-size:20px">PAID</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Current Invoice</div><span class="badge badge-green">PAID</span></div>
+        <div class="card-body" id="billing-detail"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Billing History</div></div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead><tr><th>PERIOD</th><th>BASE PLAN</th><th>STORAGE</th><th>COMPUTE</th><th>TOTAL</th><th>STATUS</th></tr></thead>
+            <tbody id="billing-history"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: SECURITY ══ -->
+    <div id="panel-t-security" class="panel">
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card green-top"><div class="stat-label">ATCA Protection</div><div class="stat-value green" style="font-size:18px">ACTIVE</div></div>
+        <div class="stat-card"><div class="stat-label">Login Sessions</div><div class="stat-value blue" style="color:var(--info)">2</div></div>
+        <div class="stat-card"><div class="stat-label">Failed Logins (7d)</div><div class="stat-value yellow">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Your ATCA Protection</div><span class="badge badge-green">FULLY CLOAKED</span></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;gap:12px;padding:12px 14px;background:rgba(0,255,159,0.04);border:1px solid rgba(0,255,159,0.15);border-radius:8px">
+              <div style="font-size:20px">🔐</div>
+              <div><div style="font-weight:700;font-size:14px;color:var(--success)">Your data is fully cloaked</div><div style="font-size:12px;color:var(--text-secondary);margin-top:3px">Schema name hidden · Cross-tenant access blocked · JWT validated on every request</div></div>
+            </div>
+            <div style="display:flex;gap:12px;padding:12px 14px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px">
+              <div style="font-size:20px">🛡</div>
+              <div><div style="font-weight:700;font-size:14px">Cloaked ID</div><div style="font-family:var(--font-mono);font-size:12px;color:var(--info);margin-top:3px" id="ts-cloak">ATCA7K2X9F</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px">This is your public identifier — your real schema name is never exposed</div></div>
+            </div>
+          </div>
+          <div class="log-list" style="margin-top:16px" id="t-sec-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ TENANT: SUPPORT ══ -->
+    <div id="panel-t-support" class="panel">
+      <div class="card" style="max-width:640px">
+        <div class="card-header"><div class="card-title">Support Center</div><span class="badge badge-green">ONLINE</span></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+            <div style="display:flex;gap:12px;padding:12px 14px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;cursor:pointer" onclick="showToast('Documentation opened','info')">
+              <div style="font-size:20px">📚</div>
+              <div><div style="font-weight:700">Documentation</div><div style="font-size:12px;color:var(--text-secondary)">API reference, guides, and tutorials</div></div>
+            </div>
+            <div style="display:flex;gap:12px;padding:12px 14px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;cursor:pointer" onclick="showToast('Status page opened','info')">
+              <div style="font-size:20px">📡</div>
+              <div><div style="font-weight:700">System Status</div><div style="font-size:12px;color:var(--text-secondary)">All systems operational · 99.99% uptime</div></div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px"><label>SUBJECT</label><input type="text" placeholder="Describe your issue..." id="sup-subject"></div>
+          <div class="form-group" style="margin-bottom:16px"><label>MESSAGE</label><textarea placeholder="Provide details..." style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text-primary);font-family:var(--font-body);font-size:14px;outline:none;width:100%;min-height:100px;resize:vertical;transition:border 0.2s;" id="sup-msg"></textarea></div>
+          <button class="btn-primary blue-btn" onclick="submitSupport()">SEND TICKET</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+//  CLOAK ID GENERATOR
+// ════════════════════════════════════════════
+const genCloakId = seed => {
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+  let h=5381; for(let i=0;i<seed.length;i++) h=((h<<5)+h)^seed.charCodeAt(i);
+  h=h>>>0; let r='ATCA';
+  for(let i=0;i<6;i++){r+=chars[h%chars.length];h=Math.imul(h^(h>>>16),0x45d9f3b)>>>0;}
+  return r;
+};
+
+// ════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════
+let currentMode = null; // 'admin' or 'tenant'
+let currentTenant = null;
+
+let tenants = [
+  {id:'T001',name:'TechFlow Inc',   domain:'techflow',  plan:'enterprise',mem_used:18.2,mem_quota:32, stor_used:42.3,stor_quota:100,req_min:4200,req_limit:5000,status:'active',   iso:'schema',monthly:8000, compute:1200},
+  {id:'T002',name:'DataBridge Ltd', domain:'databridge',plan:'growth',    mem_used:9.8, mem_quota:10, stor_used:8.9, stor_quota:20, req_min:1900,req_limit:2000,status:'warning',  iso:'shared',monthly:2000, compute:400},
+  {id:'T003',name:'Nexus Analytics',domain:'nexus',     plan:'enterprise',mem_used:14.5,mem_quota:30, stor_used:31.2,stor_quota:80, req_min:2100,req_limit:5000,status:'active',   iso:'db',    monthly:8000, compute:900},
+  {id:'T004',name:'CloudMesh',      domain:'cloudmesh', plan:'starter',   mem_used:3.2, mem_quota:5,  stor_used:2.8, stor_quota:10, req_min:480, req_limit:500, status:'active',   iso:'shared',monthly:500,  compute:80},
+  {id:'T005',name:'Quantum SaaS',   domain:'quantum',   plan:'growth',    mem_used:7.1, mem_quota:10, stor_used:14.1,stor_quota:20, req_min:1200,req_limit:2000,status:'active',   iso:'schema',monthly:2000, compute:300},
+  {id:'T006',name:'ByteForge',      domain:'byteforge', plan:'starter',   mem_used:4.8, mem_quota:5,  stor_used:4.6, stor_quota:5,  req_min:510, req_limit:500, status:'throttled',iso:'shared',monthly:500,  compute:120},
+];
+tenants.forEach(t=>t.cloakId=genCloakId(t.id+t.domain));
+
+const atcaLogs=[
+  {type:'critical',time:'02:14:33',msg:'<strong>Cross-tenant access attempt</strong> — Token tenant_id mismatch. IP 45.77.12.99. BLOCKED by ATCA Layer 3.'},
+  {type:'critical',time:'01:58:12',msg:'<strong>URL manipulation detected</strong> — databridge.atca.com accessed with techflow token. BLOCKED.'},
+  {type:'warning', time:'01:22:07',msg:'<strong>API exploit attempt</strong> — GET /employees?tenant=T002 with T001 token. Layer 3 rejected.'},
+  {type:'info',    time:'00:55:41',msg:'ATCA CloakedID rotation — T006 identifier refreshed. Old ID invalidated immediately.'},
+  {type:'success', time:'00:30:09',msg:'ATCA validation cycle — 1,240 requests verified. Zero schema name exposures detected.'},
+  {type:'warning', time:'Yesterday',msg:'<strong>JWT tampering detected</strong> — Modified tenant_id claim in token. Request blocked.'},
+];
+
+const atcaSteps=[
+  {n:1,title:'Request Arrival',          desc:'User sends HTTPS request to the platform subdomain.',                                          code:'https://tenant1.nexcloud.com/dashboard'},
+  {n:2,title:'Extract Domain',           desc:'ATCA Middleware extracts subdomain to identify tenant.',                                       code:'tenant_domain = "tenant1"  ← parsed from Host header'},
+  {n:3,title:'Identify & Cloak Tenant',  desc:'DB lookup returns encrypted CloakedID. Schema name never exposed to client.',                 code:'Domain: tenant1 → Schema: tenant1_schema → CloakedID: ATCAX9F2K'},
+  {n:4,title:'Validate JWT Token',       desc:'Decode JWT from Authorization header. Extract user_id, tenant_id, role claims.',              code:'JWT → { user_id: 45, tenant_id: "ATCAX9F2K", role: "employee" }'},
+  {n:5,title:'Compare Tenant Identity',  desc:'Critical: does domain CloakedID match JWT tenant_id?',                                        code:'Request CloakedID == Token tenant_id?  TRUE → proceed  |  FALSE → BLOCK + LOG'},
+  {n:6,title:'Route to Cloaked Schema',  desc:'App queries real schema internally. Client only ever sees CloakedID.',                        code:'SET search_path = tenant1_schema  (never visible outside server)'},
+  {n:7,title:'Log Activity',             desc:'Full audit entry written for compliance and forensics.',                                       code:'Tenant: tenant1 | User: 45 | Action: view_file | Status: SUCCESS | Time: now'},
+];
+
+let files = [
+  {name:'Q1_Report.pdf',    size:'2.4 MB', icon:'📄', type:'doc',  date:'Mar 10'},
+  {name:'backup_db.sql',    size:'18.7 MB',icon:'🗄', type:'arch', date:'Mar 09'},
+  {name:'logo_final.png',   size:'840 KB', icon:'🖼', type:'img',  date:'Mar 08'},
+  {name:'data_export.csv',  size:'5.1 MB', icon:'📊', type:'doc',  date:'Mar 07'},
+  {name:'app_v2.zip',       size:'122 MB', icon:'📦', type:'arch', date:'Mar 06'},
+  {name:'team_photo.jpg',   size:'3.2 MB', icon:'🖼', type:'img',  date:'Mar 05'},
+  {name:'schema_dump.sql',  size:'45.3 MB',icon:'🗄', type:'arch', date:'Mar 04'},
+  {name:'presentation.pptx',size:'8.9 MB', icon:'📋', type:'doc',  date:'Mar 03'},
+];
+let filteredFiles = [...files];
+
+let apiKeys = [
+  {name:'Production',  key:'nxc_live_7K2X9F...e3a8', status:'active', created:'Jan 15'},
+  {name:'Development', key:'nxc_dev_4J8N2Q...b1f4',  status:'active', created:'Feb 02'},
+  {name:'Staging',     key:'nxc_stg_9P1M7R...c5d2',  status:'revoked',created:'Dec 10'},
+];
+
+// ════════════════════════════════════════════
+//  AUTH / LOGIN
+// ════════════════════════════════════════════
+let loginMode = 'admin';
+function switchLoginTab(mode){
+  loginMode = mode;
+  document.getElementById('tab-admin').classList.toggle('active', mode==='admin');
+  document.getElementById('tab-tenant').classList.toggle('active', mode==='tenant');
+  document.getElementById('login-admin-fields').style.display = mode==='admin'?'block':'none';
+  document.getElementById('login-tenant-fields').style.display = mode==='tenant'?'block':'none';
+  document.getElementById('login-hint').innerHTML = mode==='admin'
+    ? 'Admin → user: <strong>admin</strong> / pass: <strong>nexcloud2024</strong>'
+    : 'Tenant → domain: <strong>techflow</strong> / pass: <strong>demo123</strong>';
+}
+
+function doLogin(){
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  if(loginMode === 'admin'){
+    const u = document.getElementById('l-user').value;
+    const p = document.getElementById('l-pass').value;
+    if(u==='admin' && p==='nexcloud2024'){
+      enterAdmin();
+    } else {
+      err.textContent = '✗ Invalid credentials';
+    }
+  } else {
+    const domain = document.getElementById('l-domain').value.trim().toLowerCase();
+    const pass   = document.getElementById('l-tpass').value;
+    const t = tenants.find(x=>x.domain===domain);
+    if(t && pass==='demo123'){
+      if(t.status==='throttled'){
+        err.textContent = '✗ Tenant throttled — quota exceeded';
+        return;
+      }
+      enterTenant(t);
+    } else {
+      err.textContent = '✗ Invalid domain or password';
+    }
+  }
+}
+
+function enterAdmin(){
+  currentMode = 'admin';
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('nav-admin').style.display = 'block';
+  document.getElementById('nav-tenant').style.display = 'none';
+  document.getElementById('sf-avatar').textContent = 'AD';
+  document.getElementById('sf-avatar').className = 't-avatar';
+  document.getElementById('sf-name').textContent = 'Admin Root';
+  document.getElementById('sf-mode').textContent = 'SUPERUSER';
+  document.getElementById('sf-mode').className = 'mode-badge admin';
+  document.getElementById('add-tenant-btn').style.display = 'inline-block';
+  document.getElementById('topbar-status').textContent = 'ATCA PROTECTING ALL TENANTS';
+  showPanel('dashboard', document.querySelector('#nav-admin .nav-item'));
+  renderAll();
+  showToast('Welcome, Admin. ATCA active.', 'success');
+}
+
+function enterTenant(t){
+  currentMode = 'tenant';
+  currentTenant = t;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('nav-admin').style.display = 'none';
+  document.getElementById('nav-tenant').style.display = 'block';
+  document.getElementById('sf-avatar').textContent = t.name.charAt(0);
+  document.getElementById('sf-avatar').className = 't-avatar blue';
+  document.getElementById('sf-name').textContent = t.name;
+  document.getElementById('sf-mode').textContent = t.plan.toUpperCase();
+  document.getElementById('sf-mode').className = 'mode-badge tenant';
+  document.getElementById('add-tenant-btn').style.display = 'none';
+  document.getElementById('topbar-status').textContent = 'YOUR DATA IS CLOAKED';
+  showPanel('t-dashboard', document.querySelector('#nav-tenant .nav-item'));
+  renderTenantPortal();
+  showToast(`Welcome, ${t.name}! Cloaked ID: ${t.cloakId}`, 'info');
+}
+
+function doLogout(){
+  currentMode = null;
+  currentTenant = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('nav-admin').style.display = 'none';
+  document.getElementById('nav-tenant').style.display = 'none';
+  document.getElementById('login-error').textContent = '';
+}
+
+// ════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════
+function showPanel(name,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const panel = document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
+  document.getElementById('page-title').textContent = name==='atca'?'ATCA ALGORITHM':name.replace('t-','').toUpperCase();
+  if(el) el.classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//  ADMIN RENDERS
+// ════════════════════════════════════════════
+function renderTenants(){
+  document.getElementById('tenant-tbody').innerHTML=tenants.map(t=>{
+    const p=Math.round(t.mem_used/t.mem_quota*100);
+    const sp=Math.round(t.stor_used/t.stor_quota*100);
+    const bc=p>90?'critical':p>70?'warning':'normal';
+    const sb={active:'<span class="badge badge-green">● ACTIVE</span>',warning:'<span class="badge badge-yellow">⚠ WARN</span>',throttled:'<span class="badge badge-red">⛔ THROTTLED</span>'}[t.status];
+    const ib={shared:'<span class="badge badge-blue">SHARED</span>',schema:'<span class="badge badge-yellow">SCHEMA</span>',db:'<span class="badge badge-green">DB</span>'}[t.iso];
+    return `<tr><td><div style="font-weight:700">${t.name}</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim)">${t.domain}.nexcloud.com</div></td>
+      <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--info)">${t.cloakId}</span></td>
+      <td><span class="badge badge-blue">${t.plan.toUpperCase()}</span></td>
+      <td><div class="mem-label"><span>${t.mem_used}/${t.mem_quota}GB</span><span>${p}%</span></div><div class="mem-bar-bg"><div class="mem-bar-fill ${bc}" style="width:${p}%"></div></div></td>
+      <td><div class="mem-label"><span>${t.stor_used}/${t.stor_quota}GB</span><span>${sp}%</span></div><div class="mem-bar-bg"><div class="mem-bar-fill ${sp>90?'critical':sp>70?'warning':'normal'}" style="width:${sp}%"></div></div></td>
+      <td>${sb}</td><td>${ib}</td>
+      <td><button class="btn-ghost" style="padding:5px 12px;font-size:11px" onclick="viewTenant('${t.id}')">VIEW</button></td></tr>`;
+  }).join('');
+}
+
+function renderMemory(){
+  const sorted=[...tenants].sort((a,b)=>b.mem_used-a.mem_used);
+  document.getElementById('mem-list').innerHTML=sorted.map(t=>{
+    const p=Math.round(t.mem_used/t.mem_quota*100);
+    const bc=p>90?'critical':p>70?'warning':'normal';
+    return `<div style="margin-bottom:14px">
+      <div class="mem-label"><span><strong style="color:var(--text-primary)">${t.name}</strong> <span style="color:var(--info);font-size:10px">[${t.cloakId}]</span></span><span style="${p>90?'color:var(--red-bright)':''}">${t.mem_used}/${t.mem_quota}GB — ${p}%</span></div>
+      <div class="mem-bar-bg" style="height:9px"><div class="mem-bar-fill ${bc}" style="width:${p}%"></div></div></div>`;
+  }).join('');
+  document.getElementById('mem-used-val').textContent=tenants.reduce((a,t)=>a+t.mem_used,0).toFixed(1)+' GB';
+  const over=tenants.filter(t=>t.mem_used/t.mem_quota>0.85);
+  document.getElementById('mem-alerts').innerHTML=over.length===0
+    ?'<div class="log-item success"><span class="log-time">NOW</span><div class="log-msg"><strong>All tenants within quota</strong></div></div>'
+    :over.map(t=>`<div class="log-item critical"><span class="log-time">${new Date().toLocaleTimeString()}</span><div class="log-msg"><strong>${t.name}</strong> [${t.cloakId}] memory at ${Math.round(t.mem_used/t.mem_quota*100)}% — ATCA throttling active</div></div>`).join('');
+}
+
+function renderPayments(){
+  const next=new Date();next.setMonth(next.getMonth()+1);
+  const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('pay-tbody').innerHTML=tenants.map(t=>{
+    const mc=+(t.mem_used*0.08*30).toFixed(0);
+    const sc=+(t.stor_used*0.02*30).toFixed(0);
+    const total=t.monthly+t.compute+mc+sc,ov=t.id==='T006';
+    return `<tr><td style="font-weight:700">${t.name}</td>
+      <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--info)">${t.cloakId}</span></td>
+      <td><span class="badge badge-blue">${t.plan.toUpperCase()}</span></td>
+      <td style="font-family:var(--font-mono)">$${mc}</td><td style="font-family:var(--font-mono)">$${t.compute}</td>
+      <td style="font-family:var(--font-mono)">$${sc}</td>
+      <td style="font-family:var(--font-mono);font-weight:700">$${total.toLocaleString()}</td>
+      <td>${ov?'<span class="badge badge-red">OVERDUE</span>':'<span class="badge badge-green">PAID</span>'}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">${fmt(next)}</td></tr>`;
+  }).join('');
+}
+
+function renderBarChart(){
+  const h=['00','03','06','09','12','15','18','21','Now'],v=[12,8,5,18,42,67,55,73,89],mx=Math.max(...v);
+  document.getElementById('req-chart').innerHTML=h.map((l,i)=>`<div class="bar-col"><div class="bar-fill" style="height:${Math.round(v[i]/mx*100)}px"></div><div class="bar-label">${l}</div></div>`).join('');
+}
+
+function renderHealth(){
+  document.getElementById('health-list').innerHTML=tenants.map(t=>{
+    const s=Math.round((t.mem_used/t.mem_quota*0.5+t.req_min/t.req_limit*0.5)*100);
+    const c=s>85?'var(--red-bright)':s>60?'var(--warning)':'var(--success)';
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:11px">
+      <div style="font-size:12px;font-weight:700;width:95px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+      <div style="flex:1"><div class="mem-bar-bg"><div style="height:6px;border-radius:4px;background:${c};width:${s}%"></div></div></div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:${c};width:26px;text-align:right">${s}</div></div>`;
+  }).join('');
+}
+
+function renderDashLog(){
+  document.getElementById('dash-log').innerHTML=atcaLogs.slice(0,4).map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span><div class="log-msg">${l.msg}</div></div>`).join('');
+}
+
+function renderTopMem(){
+  document.getElementById('top-mem').innerHTML=[...tenants].sort((a,b)=>b.mem_used-a.mem_used).slice(0,4).map(t=>{
+    const p=Math.round(t.mem_used/t.mem_quota*100);
+    return `<div style="margin-bottom:12px"><div class="mem-label"><span>${t.name}</span><span>${t.mem_used}GB (${p}%)</span></div><div class="mem-bar-bg"><div class="mem-bar-fill ${p>90?'critical':p>70?'warning':'normal'}" style="width:${p}%"></div></div></div>`;
+  }).join('');
+}
+
+function renderATCASteps(){
+  document.getElementById('atca-steps').innerHTML=atcaSteps.map((s,i)=>{
+    const isLast=i===atcaSteps.length-1;
+    return `<div class="atca-step">
+      <div style="display:flex;flex-direction:column;align-items:center;width:46px;flex-shrink:0">
+        <div class="atca-node">${s.n}</div>
+        ${!isLast?'<div style="flex:1;width:2px;background:var(--border)"></div>':''}
+      </div>
+      <div class="atca-content" style="${isLast?'':'padding-bottom:18px'}">
+        <div class="atca-title">${s.title}</div>
+        <div class="atca-desc">${s.desc}</div>
+        <div class="atca-code">${s.code}</div>
+      </div></div>`;
+  }).join('');
+}
+
+function renderCloaking(){
+  document.getElementById('cloak-map').innerHTML=tenants.map(t=>`
+    <div class="cloak-row">
+      <span class="cloak-label">${t.name}</span>
+      <span class="cloak-raw">${t.domain}_schema</span>
+      <span class="cloak-arrow">──ATCA CLOAK──▶</span>
+      <span class="cloak-enc">${t.cloakId}</span>
+    </div>`).join('');
+  document.getElementById('atca-log').innerHTML=atcaLogs.map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span><div class="log-msg">${l.msg}</div></div>`).join('');
+  document.getElementById('cloak-count').textContent=tenants.length;
+}
+
+function renderSecurity(){
+  document.getElementById('sec-log').innerHTML=atcaLogs.map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span><div class="log-msg">${l.msg}</div></div>`).join('');
+  const defs=[
+    {icon:'🌐',t:'Layer 1 — Domain Detection',   d:'Subdomain parsed on every request. Unknown/unregistered domains rejected instantly.'},
+    {icon:'🔒',t:'Layer 2 — Schema Cloaking',     d:'Real DB schema names replaced with encrypted ATCAXXXXXX identifiers on all API responses.'},
+    {icon:'🪙',t:'Layer 3 — JWT Tenant Binding',  d:'Token tenant_id must exactly match domain-resolved cloaked ID. Mismatch = 403.'},
+    {icon:'🚫',t:'URL Manipulation Guard',         d:'Changing tenant subdomain with a mismatched JWT → immediate block + IP log.'},
+    {icon:'🔍',t:'API Exploit Guard',              d:'Query params like ?tenant=other rejected if they disagree with JWT claims.'},
+    {icon:'📋',t:'Full Audit Trail',               d:'Every request logged: tenant, user_id, action, result, timestamp, source_ip.'},
+  ];
+  document.getElementById('defense-list').innerHTML='<div style="display:flex;flex-direction:column;gap:9px">'+defs.map(d=>`
+    <div style="display:flex;gap:12px;padding:11px 14px;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:17px">${d.icon}</div>
+      <div><div style="font-weight:700;font-size:13px;margin-bottom:2px">${d.t}</div><div style="font-size:12px;color:var(--text-secondary)">${d.d}</div></div></div>`).join('')+'</div>';
+}
+
+// ════════════════════════════════════════════
+//  TENANT PORTAL RENDERS
+// ════════════════════════════════════════════
+function renderTenantPortal(){
+  const t = currentTenant;
+  if(!t) return;
+  document.getElementById('pt-name').textContent = t.name;
+  document.getElementById('pt-domain').textContent = '🌐 '+t.domain+'.nexcloud.com';
+  document.getElementById('pt-cloak').textContent = '🔐 Cloaked ID: '+t.cloakId;
+  document.getElementById('pt-plan').textContent = t.plan.toUpperCase();
+  document.getElementById('pt-status-label').textContent = t.status==='active'?'● ACTIVE':'⚠ '+t.status.toUpperCase();
+  document.getElementById('pt-mem').textContent = t.mem_used+' GB';
+  document.getElementById('pt-req').textContent = t.req_min.toLocaleString();
+  const sp = Math.round(t.stor_used/t.stor_quota*100);
+  document.getElementById('pt-storage-used').textContent = t.stor_used+' GB';
+  document.getElementById('pt-storage-pct').textContent = 'of '+t.stor_quota+'GB quota ('+sp+'%)';
+  const mc=+(t.mem_used*0.08*30).toFixed(0), sc=+(t.stor_used*0.02*30).toFixed(0);
+  document.getElementById('pt-bill').textContent = '$'+(t.monthly+t.compute+mc+sc).toLocaleString();
+
+  // storage breakdown
+  const cats = [{name:'Documents',gb:t.stor_used*0.35,icon:'📄'},{name:'Databases',gb:t.stor_used*0.40,icon:'🗄'},{name:'Images',gb:t.stor_used*0.15,icon:'🖼'},{name:'Archives',gb:t.stor_used*0.10,icon:'📦'}];
+  document.getElementById('pt-storage-breakdown').innerHTML = cats.map(c=>{
+    const p=Math.round(c.gb/t.stor_quota*100);
+    return `<div style="margin-bottom:12px"><div class="mem-label"><span>${c.icon} ${c.name}</span><span>${c.gb.toFixed(1)}GB (${p}%)</span></div><div class="mem-bar-bg"><div class="mem-bar-fill normal" style="width:${p}%;background:var(--info)"></div></div></div>`;
+  }).join('');
+
+  // activity
+  document.getElementById('pt-activity').innerHTML = [
+    {type:'info',   time:'Just now', msg:'Dashboard loaded — ATCA session active'},
+    {type:'success',time:'2 min ago',msg:'<strong>File uploaded</strong> — Q1_Report.pdf (2.4 MB)'},
+    {type:'info',   time:'14 min ago',msg:'API request — GET /api/data/my-records → 200 OK'},
+    {type:'warning',time:'1h ago',   msg:'<strong>High memory usage</strong> — 57% of quota'},
+    {type:'success',time:'3h ago',   msg:'Database backup completed successfully'},
+  ].map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span><div class="log-msg">${l.msg}</div></div>`).join('');
+
+  // update API domain labels
+  ['api-domain','api-domain2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = t.domain;
+  });
+  document.getElementById('ts-cloak').textContent = t.cloakId;
+
+  renderStoragePanel();
+  renderFiles();
+  renderUsage();
+  renderApiKeys();
+  renderBilling();
+  renderTenantSecurity();
+}
+
+function renderStoragePanel(){
+  const t = currentTenant; if(!t) return;
+  const sp = Math.round(t.stor_used/t.stor_quota*100);
+  const circumference = 2 * Math.PI * 58;
+  const dashOffset = circumference * (1 - sp/100);
+  document.getElementById('stor-pct').textContent = sp+'%';
+  document.getElementById('stor-used-val').textContent = t.stor_used+' GB';
+  // Update ring
+  const ring = document.querySelector('#panel-t-storage circle:last-child');
+  if(ring){ring.setAttribute('stroke-dashoffset', dashOffset.toFixed(1));}
+
+  const cats = [{name:'Databases',gb:t.stor_used*0.40,icon:'🗄',color:'var(--red-bright)'},{name:'Documents',gb:t.stor_used*0.35,icon:'📄',color:'var(--info)'},{name:'Images',gb:t.stor_used*0.15,icon:'🖼',color:'var(--success)'},{name:'Archives',gb:t.stor_used*0.10,icon:'📦',color:'var(--warning)'}];
+  document.getElementById('stor-breakdown').innerHTML = cats.map(c=>{
+    const p=Math.round(c.gb/t.stor_quota*100);
+    return `<div style="margin-bottom:14px"><div class="mem-label"><span>${c.icon} ${c.name}</span><span style="color:${c.color}">${c.gb.toFixed(1)} GB</span></div><div class="mem-bar-bg" style="height:9px"><div style="height:9px;border-radius:4px;background:${c.color};width:${p}%;transition:width 1s"></div></div></div>`;
+  }).join('');
+
+  const days=['Mar 10','Mar 9','Mar 8','Mar 7','Mar 6','Mar 5','Mar 4'];
+  const vv=[t.stor_used,t.stor_used*0.94,t.stor_used*0.89,t.stor_used*0.82,t.stor_used*0.76,t.stor_used*0.71,t.stor_used*0.68];
+  const mx=Math.max(...vv);
+  document.getElementById('stor-history').innerHTML=days.map((l,i)=>`<div class="bar-col"><div class="bar-fill blue-bar" style="height:${Math.round(vv[i]/mx*100)}px"></div><div class="bar-label">${l.replace('Mar ','M')}</div></div>`).join('');
+}
+
+function renderFiles(){
+  document.getElementById('file-grid').innerHTML = filteredFiles.map(f=>`
+    <div class="file-item">
+      <div class="file-icon">${f.icon}</div>
+      <div class="file-name" title="${f.name}">${f.name}</div>
+      <div class="file-size">${f.size} · ${f.date}</div>
+      <div class="file-actions">
+        <button class="file-btn" onclick="downloadFile('${f.name}')">↓</button>
+        <button class="file-btn danger" onclick="deleteFile('${f.name}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderUsage(){
+  const t = currentTenant; if(!t) return;
+  const quotas = [
+    {icon:'💾',name:'Storage',used:t.stor_used,quota:t.stor_quota,unit:'GB'},
+    {icon:'🧠',name:'Memory',used:t.mem_used,quota:t.mem_quota,unit:'GB'},
+    {icon:'⚡',name:'API Requests',used:t.req_min,quota:t.req_limit,unit:'req/day'},
+    {icon:'🌐',name:'Bandwidth',used:128,quota:500,unit:'GB/mo'},
+  ];
+  document.getElementById('quota-detail').innerHTML = quotas.map(q=>{
+    const p=Math.round(q.used/q.quota*100);
+    const c=p>90?'critical':p>70?'warning':'normal';
+    return `<div class="quota-row"><div class="quota-icon">${q.icon}</div><div class="quota-info"><div class="quota-name">${q.name}</div><div class="quota-nums">${q.used} / ${q.quota} ${q.unit} — ${p}%</div></div><div class="quota-bar-wrap"><div class="mem-bar-bg" style="height:8px"><div class="mem-bar-fill ${c}" style="width:${p}%"></div></div></div></div>`;
+  }).join('');
+  document.getElementById('u-stor').textContent = t.stor_used+'GB';
+  document.getElementById('u-mem').textContent  = t.mem_used+'GB';
+  document.getElementById('u-req').textContent  = t.req_min.toLocaleString();
+
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const vals=[t.stor_used*0.6, t.stor_used*0.72, t.stor_used*0.85, t.stor_used*0.78, t.stor_used*0.91, t.stor_used*0.55, t.stor_used*0.65];
+  const mx=Math.max(...vals);
+  document.getElementById('usage-chart').innerHTML=days.map((l,i)=>`<div class="bar-col"><div class="bar-fill blue-bar" style="height:${Math.round(vals[i]/mx*100)}px"></div><div class="bar-label">${l}</div></div>`).join('');
+}
+
+function renderApiKeys(){
+  document.getElementById('api-keys-list').innerHTML = apiKeys.map(k=>`
+    <div class="api-key-row">
+      <div class="api-key-name">${k.name}</div>
+      <div class="api-key-val">${k.key}</div>
+      <div class="api-key-status" style="color:${k.status==='active'?'var(--success)':'var(--text-dim)'}">${k.status==='active'?'● ACTIVE':'✕ REVOKED'}</div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim)">${k.created}</div>
+      ${k.status==='active'?`<button class="file-btn danger" onclick="revokeKey('${k.name}')">REVOKE</button>`:''}
+    </div>`).join('');
+}
+
+function renderBilling(){
+  const t = currentTenant; if(!t) return;
+  const mc=+(t.mem_used*0.08*30).toFixed(0), sc=+(t.stor_used*0.02*30).toFixed(0);
+  const total = t.monthly+t.compute+mc+sc;
+  document.getElementById('b-total').textContent = '$'+total.toLocaleString();
+  document.getElementById('billing-detail').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span>Base Plan (${t.plan})</span><span style="font-family:var(--font-mono);font-weight:700">$${t.monthly.toLocaleString()}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span>Memory Usage (${t.mem_used}GB × $0.08 × 30d)</span><span style="font-family:var(--font-mono)">$${mc}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span>Storage Usage (${t.stor_used}GB × $0.02 × 30d)</span><span style="font-family:var(--font-mono)">$${sc}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span>Compute</span><span style="font-family:var(--font-mono)">$${t.compute}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0"><span style="font-weight:700;font-size:15px">TOTAL</span><span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--info)">$${total.toLocaleString()}</span></div>
+    </div>`;
+
+  const months = ['Feb 2026','Jan 2026','Dec 2025','Nov 2025'];
+  document.getElementById('billing-history').innerHTML = months.map((m,i)=>{
+    const tot = total - i*Math.floor(Math.random()*200+50);
+    return `<tr><td style="font-family:var(--font-mono)">${m}</td><td style="font-family:var(--font-mono)">$${t.monthly}</td><td style="font-family:var(--font-mono)">$${sc}</td><td style="font-family:var(--font-mono)">$${t.compute}</td><td style="font-family:var(--font-mono);font-weight:700">$${tot}</td><td><span class="badge badge-green">PAID</span></td></tr>`;
+  }).join('');
+}
+
+function renderTenantSecurity(){
+  const t = currentTenant; if(!t) return;
+  document.getElementById('ts-cloak').textContent = t.cloakId;
+  document.getElementById('t-sec-log').innerHTML = [
+    {type:'success',time:'Just now','msg':'Session authenticated — ATCA Layer 3 passed'},
+    {type:'info',   time:'2 min ago',msg:`CloakedID validated: <strong>${t.cloakId}</strong>`},
+    {type:'success',time:'1h ago',  msg:'JWT token refreshed — all 3 ATCA layers passed'},
+    {type:'info',   time:'6h ago',  msg:'Login from 192.168.1.1 — authorized'},
+  ].map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span><div class="log-msg">${l.msg}</div></div>`).join('');
+}
+
+// ════════════════════════════════════════════
+//  ADMIN ACTIONS
+// ════════════════════════════════════════════
+function registerTenant(){
+  const name=document.getElementById('f-name').value.trim();
+  const email=document.getElementById('f-email').value.trim();
+  const domain=document.getElementById('f-domain').value.trim().toLowerCase().replace(/\s+/g,'');
+  const plan=document.getElementById('f-plan').value;
+  const mem=parseFloat(document.getElementById('f-mem').value)||0;
+  const stor=parseFloat(document.getElementById('f-storage').value)||0;
+  const req=parseInt(document.getElementById('f-req').value)||0;
+  const iso=document.getElementById('f-iso').value;
+  if(!name||!email||!domain||!mem||!req){showToast('Fill all required fields!','error');return;}
+  const costs={starter:500,growth:2000,enterprise:8000};
+  const tid='T'+(tenants.length+1).toString().padStart(3,'0');
+  const t={id:tid,name,domain,plan,mem_used:0.1,mem_quota:mem,stor_used:0.1,stor_quota:stor||20,req_min:0,req_limit:req,status:'active',iso,monthly:costs[plan],compute:50};
+  t.cloakId=genCloakId(tid+domain);
+  tenants.push(t);
+  document.getElementById('tenant-count').textContent=tenants.length;
+  document.getElementById('atca-cloaked').textContent=tenants.length;
+  document.getElementById('cloak-count').textContent=tenants.length;
+  document.getElementById('tk-tenants').textContent=tenants.length;
+  renderAll();
+  showToast(`"${name}" registered! CloakedID: ${t.cloakId}`,'success');
+  clearForm();
+  showPanel('tenants',document.querySelectorAll('#nav-admin .nav-item')[1]);
+}
+
+function clearForm(){['f-name','f-email','f-domain','f-mem','f-storage','f-req'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
+
+function viewTenant(id){
+  const t=tenants.find(x=>x.id===id);
+  showToast(`${t.name} — CloakedID: ${t.cloakId} | Storage: ${t.stor_used}/${t.stor_quota}GB`,'info');
+}
+
+// ════════════════════════════════════════════
+//  TENANT ACTIONS
+// ════════════════════════════════════════════
+function triggerUpload(){ document.getElementById('file-input').click(); }
+
+function handleFileUpload(input){
+  Array.from(input.files).forEach(f=>{
+    const icons = {'application/pdf':'📄','image/':' 🖼','video/':'🎬','text/':'📝'};
+    let icon = '📁';
+    for(const [k,v] of Object.entries(icons)) if(f.type.startsWith(k)) icon=v;
+    const newFile = {name:f.name, size:(f.size/1024/1024).toFixed(1)+' MB', icon, type:'doc', date:'Now'};
+    files.unshift(newFile);
+    filteredFiles.unshift(newFile);
+    if(currentTenant) currentTenant.stor_used = parseFloat((currentTenant.stor_used + f.size/1024/1024/1024).toFixed(2));
+  });
+  renderFiles();
+  renderTenantPortal();
+  showToast(`${input.files.length} file(s) uploaded successfully`,'success');
+  input.value='';
+}
+
+function filterFiles(q){
+  filteredFiles = q ? files.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())) : [...files];
+  renderFiles();
+}
+
+function filterByType(type){
+  filteredFiles = type==='all' ? [...files] : files.filter(f=>f.type===type);
+  renderFiles();
+}
+
+function downloadFile(name){ showToast(`Downloading: ${name}`,'info'); }
+
+function deleteFile(name){
+  files = files.filter(f=>f.name!==name);
+  filteredFiles = filteredFiles.filter(f=>f.name!==name);
+  renderFiles();
+  showToast(`${name} deleted`,'success');
+}
+
+function newFolder(){
+  const name = prompt('Folder name:');
+  if(name) showToast(`Folder "${name}" created`,'success');
+}
+
+function generateApiKey(){
+  const names=['Analytics','Webhook','CI/CD','Testing'];
+  const name = names[Math.floor(Math.random()*names.length)]+' '+Math.floor(Math.random()*99);
+  const key = 'nxc_live_'+Math.random().toString(36).substr(2,6)+'...'+Math.random().toString(36).substr(2,4);
+  apiKeys.unshift({name,key,status:'active',created:'Now'});
+  renderApiKeys();
+  showToast(`API Key "${name}" generated`,'success');
+}
+
+function revokeKey(name){
+  const k = apiKeys.find(x=>x.name===name);
+  if(k){k.status='revoked';renderApiKeys();showToast(`Key "${name}" revoked`,'success');}
+}
+
+function submitSupport(){
+  const sub=document.getElementById('sup-subject').value;
+  const msg=document.getElementById('sup-msg').value;
+  if(!sub||!msg){showToast('Please fill subject and message','error');return;}
+  document.getElementById('sup-subject').value='';
+  document.getElementById('sup-msg').value='';
+  showToast('Support ticket submitted! We\'ll respond within 4 hours.','success');
+}
+
+// ════════════════════════════════════════════
+//  GLOBAL REFRESH
+// ════════════════════════════════════════════
+function refreshAll(){
+  tenants.forEach(t=>{
+    t.mem_used=parseFloat(Math.min(t.mem_quota,Math.max(0.05,t.mem_used*(0.97+Math.random()*0.06))).toFixed(1));
+    t.stor_used=parseFloat(Math.min(t.stor_quota,Math.max(0.05,t.stor_used*(0.99+Math.random()*0.02))).toFixed(1));
+    t.req_min=Math.floor(t.req_min*(0.95+Math.random()*0.1));
+    const s=t.mem_used/t.mem_quota*0.5+t.req_min/t.req_limit*0.5;
+    t.status=s>0.90?'throttled':s>0.75?'warning':'active';
+  });
+  const rEl=document.getElementById('atca-req'),bEl=document.getElementById('atca-blk'),cbEl=document.getElementById('cloak-blocks');
+  if(rEl) rEl.textContent=(parseInt(rEl.textContent.replace(/,/g,''))+Math.floor(Math.random()*80+20)).toLocaleString();
+  if(bEl){const nb=parseInt(bEl.textContent)+Math.floor(Math.random()*6+1);bEl.textContent=nb;if(cbEl)cbEl.textContent=nb;document.getElementById('d-atca').textContent=nb;}
+  const totMem=tenants.reduce((a,t)=>a+t.mem_used,0).toFixed(1);
+  document.getElementById('d-mem').textContent=totMem+' GB';
+  document.getElementById('tk-mem').textContent=totMem+'GB';
+  document.getElementById('tk-valid').textContent=(parseInt(document.getElementById('tk-valid').textContent.replace(/,/g,''))+Math.floor(Math.random()*50+20)).toLocaleString();
+  if(currentMode==='admin') renderAll();
+  else if(currentMode==='tenant') renderTenantPortal();
+  showToast('Metrics refreshed — ATCA active','success');
+}
+
+function renderAll(){
+  renderTenants();renderMemory();renderPayments();renderBarChart();renderHealth();renderDashLog();renderTopMem();renderATCASteps();renderCloaking();renderSecurity();
+}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  setTimeout(()=>{t.className='toast';},3500);
+}
+
+// ════════════════════════════════════════════
+//  REAL-TIME SIMULATION
+// ════════════════════════════════════════════
+setInterval(()=>{
+  tenants.forEach(t=>{
+    t.mem_used=parseFloat(Math.min(t.mem_quota,Math.max(0.05,t.mem_used*(0.99+Math.random()*0.02))).toFixed(1));
+  });
+  if(currentMode==='admin'){renderHealth();renderTopMem();}
+  else if(currentMode==='tenant' && currentTenant){renderTenantPortal();}
+},12000);
+
+// Ticker live update
+setInterval(()=>{
+  const tkv=document.getElementById('tk-valid');
+  if(tkv) tkv.textContent=(parseInt(tkv.textContent.replace(/,/g,''))+Math.floor(Math.random()*5+1)).toLocaleString();
+},3000);
+</script>
+</body>
+</html>
